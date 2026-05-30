@@ -73,6 +73,7 @@ export default function App() {
   const [showUnitGuides, setShowUnitGuides] = useState(true);
   const [showArea, setShowArea] = useState(true);
   const [animateTransitions, setAnimateTransitions] = useState(true);
+  const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1);
   
   // We'll store history of TOTAL matrices for simplicity
   const [history, setHistory] = useState<{i: Point, j: Point}[]>([]);
@@ -185,6 +186,7 @@ export default function App() {
             showUnitGuides={showUnitGuides} setShowUnitGuides={setShowUnitGuides}
             showArea={showArea} setShowArea={setShowArea}
             animateTransitions={animateTransitions} setAnimateTransitions={setAnimateTransitions}
+            fontSizeMultiplier={fontSizeMultiplier} setFontSizeMultiplier={setFontSizeMultiplier}
             history={history} onRestoreHistory={onRestoreHistory} onClearHistory={() => setHistory([])}
          />
          <div className="flex-1 relative bg-slate-950 min-h-[50vh] md:min-h-0">
@@ -192,6 +194,7 @@ export default function App() {
               iVec={iVec} jVec={jVec} onVectorsChange={onVectorsChange}
               snapToGrid={snapToGrid} showTransformedGrid={showTransformedGrid} showShape={showShape}
               showUnitGuides={showUnitGuides} showArea={showArea}
+              fontSizeMultiplier={fontSizeMultiplier}
               onDragStart={pushToHistory}
             />
          </div>

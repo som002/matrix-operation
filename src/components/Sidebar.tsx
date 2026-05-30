@@ -22,6 +22,8 @@ interface SidebarProps {
   setShowArea: (v: boolean) => void;
   animateTransitions: boolean;
   setAnimateTransitions: (v: boolean) => void;
+  fontSizeMultiplier: number;
+  setFontSizeMultiplier: (v: number) => void;
   history: {i: Point, j: Point}[];
   onRestoreHistory: (i: Point, j: Point) => void;
   onClearHistory: () => void;
@@ -37,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     showUnitGuides, setShowUnitGuides,
     showArea, setShowArea,
     animateTransitions, setAnimateTransitions,
+    fontSizeMultiplier, setFontSizeMultiplier,
     history, onRestoreHistory, onClearHistory
   } = props;
 
@@ -316,6 +319,20 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
           <Toggle label="Show Target Shape" checked={showShape} onChange={setShowShape} />
           <Toggle label="Show Unit Vectors" checked={showUnitGuides} onChange={setShowUnitGuides} />
           <Toggle label="Animate Transitions" checked={animateTransitions} onChange={setAnimateTransitions} />
+          
+          <div className="pt-3 border-t border-slate-800">
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-sm text-slate-400">Scale Labels</label>
+              <span className="font-mono text-xs text-sky-400">{fontSizeMultiplier.toFixed(1)}x</span>
+            </div>
+            <input 
+              type="range" 
+              min="0.5" max="3" step="0.1" 
+              value={fontSizeMultiplier} 
+              onChange={(e) => setFontSizeMultiplier(Number(e.target.value))}
+              className="w-full accent-sky-500 bg-slate-800 rounded-lg appearance-none h-1.5"
+            />
+          </div>
         </div>
       </div>
 

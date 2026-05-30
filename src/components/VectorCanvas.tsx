@@ -11,17 +11,23 @@ interface VectorCanvasProps {
   showShape: boolean;
   showUnitGuides: boolean;
   showArea: boolean;
+  fontSizeMultiplier: number;
   onDragStart?: () => void;
 }
 
 export const VectorCanvas: React.FC<VectorCanvasProps> = ({
-  iVec, jVec, onVectorsChange, snapToGrid, showTransformedGrid, showShape, showUnitGuides, showArea, onDragStart
+  iVec, jVec, onVectorsChange, snapToGrid, showTransformedGrid, showShape, showUnitGuides, showArea, fontSizeMultiplier, onDragStart
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [dragType, setDragType] = useState<'i' | 'j' | 'pan' | null>(null);
+  const [dragType, setDragType] = useState<'i' | 'j' | 'pan' | 'pinch' | null>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const lastMousePos = useRef({ x: 0, y: 0 });
+  
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const initialPinchDist = useRef<number | null>(null);
+  const initialZoom = useRef<number>(1);
+  const dragPointerId = useRef<number | null>(null);
 
   useEffect(() => {
     if (!dragType) return;
@@ -29,6 +35,20 @@ export const VectorCanvas: React.FC<VectorCanvasProps> = ({
     const handlePointerMove = (e: PointerEvent) => {
       const svg = svgRef.current;
       if (!svg) return;
+
+      if (activePointers.current.has(e.pointerId)) {
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+
+      if (dragType === 'pinch' && activePointers.current.size === 2) {
+          const pts = Array.from(activePointers.current.values());
+          const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+          if (initialPinchDist.current && initialPinchDist.current > 0) {
+               const scale = initialPinchDist.current / dist;
+               setZoom(Math.max(0.1, Math.min(10, initialZoom.current * scale)));
+          }
+          return;
+      }
 
       if (dragType === 'pan') {
          const dx = e.clientX - lastMousePos.current.x;
@@ -59,20 +79,46 @@ export const VectorCanvas: React.FC<VectorCanvasProps> = ({
       const rawPos = { x: svgP.x, y: -svgP.y };
       const finalPos = snapToGrid ? snapPoint(rawPos, 0.5) : rawPos;
       
-      if (dragType === 'i') {
+      if (dragType === 'i' && e.pointerId === dragPointerId.current) {
         onVectorsChange(finalPos, jVec);
-      } else if (dragType === 'j') {
+      } else if (dragType === 'j' && e.pointerId === dragPointerId.current) {
         onVectorsChange(iVec, finalPos);
       }
     };
 
-    const handlePointerUp = () => setDragType(null);
+    const handlePointerUp = (e: PointerEvent) => {
+        activePointers.current.delete(e.pointerId);
+        
+        if (dragType === 'pinch') {
+            if (activePointers.current.size === 1) {
+                setDragType('pan');
+                const pts = Array.from(activePointers.current.values());
+                lastMousePos.current = { x: pts[0].x, y: pts[0].y };
+            } else if (activePointers.current.size === 0) {
+                setDragType(null);
+            }
+        } else if (dragType === 'pan') {
+            if (activePointers.current.size === 0) {
+                setDragType(null);
+            } else if (activePointers.current.size === 1) {
+                const pts = Array.from(activePointers.current.values());
+                lastMousePos.current = { x: pts[0].x, y: pts[0].y };
+            }
+        } else if (dragType === 'i' || dragType === 'j') {
+            if (e.pointerId === dragPointerId.current) {
+                setDragType(null);
+                dragPointerId.current = null;
+            }
+        }
+    };
 
     window.addEventListener('pointermove', handlePointerMove);
     window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
     return () => {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
     };
   }, [dragType, iVec, jVec, snapToGrid, onVectorsChange]);
 
@@ -163,12 +209,24 @@ export const VectorCanvas: React.FC<VectorCanvasProps> = ({
     );
   };
 
+  const fontScale = zoom * fontSizeMultiplier;
+
   return (
     <div 
       className={`w-full h-full relative overflow-hidden touch-none ${dragType === 'pan' ? 'cursor-grabbing' : 'cursor-crosshair'}`} style={{ touchAction: 'none' }}
       onPointerDown={(e) => {
-        setDragType('pan');
-        lastMousePos.current = { x: e.clientX, y: e.clientY };
+        if (dragType === 'i' || dragType === 'j') return;
+        activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        
+        if (activePointers.current.size === 2) {
+          setDragType('pinch');
+          const pts = Array.from(activePointers.current.values());
+          initialPinchDist.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+          initialZoom.current = zoom;
+        } else if (activePointers.current.size === 1) {
+          setDragType('pan');
+          lastMousePos.current = { x: e.clientX, y: e.clientY };
+        }
       }}
     >
       <svg 
@@ -192,33 +250,33 @@ export const VectorCanvas: React.FC<VectorCanvasProps> = ({
             <>
               {/* Unit Vector X */}
               <line x1={0} y1={0} x2={1} y2={0} stroke="#0ea5e9" strokeWidth={2} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" strokeOpacity={0.7} />
-              <text x={1.2} y={0.15} fill="#0ea5e9" fontSize={0.6} fontFamily="monospace" fontWeight="bold" opacity={0.9} className="pointer-events-none select-none">î (1,0)</text>
+              <text x={1 + 0.2 * fontScale} y={0.15 * fontScale} fill="#0ea5e9" fontSize={0.6 * fontScale} fontFamily="monospace" fontWeight="bold" opacity={0.9} className="pointer-events-none select-none">î (1,0)</text>
               
               {/* Unit Vector Y */}
               <line x1={0} y1={0} x2={0} y2={-1} stroke="#e11d48" strokeWidth={2} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" strokeOpacity={0.7} />
-              <text x={0.2} y={-1.2} fill="#e11d48" fontSize={0.6} fontFamily="monospace" fontWeight="bold" opacity={0.9} className="pointer-events-none select-none">ĵ (0,1)</text>
+              <text x={0.2 * fontScale} y={-1 - 0.2 * fontScale} fill="#e11d48" fontSize={0.6 * fontScale} fontFamily="monospace" fontWeight="bold" opacity={0.9} className="pointer-events-none select-none">ĵ (0,1)</text>
             </>
           )}
 
           {/* I-Vector */}
           <line x1={0} y1={0} x2={iVec.x} y2={-iVec.y} stroke="#38bdf8" strokeWidth={3} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           <circle 
-            cx={iVec.x} cy={-iVec.y} r={0.3} 
+            cx={iVec.x} cy={-iVec.y} r={0.3 * Math.min(1, zoom/2 + 0.5)} 
             fill="#38bdf8" 
             className="cursor-grab active:cursor-grabbing shadow-lg transition-all shadow-sky-500/50"
-            onPointerDown={(e) => { e.stopPropagation(); onDragStart?.(); setDragType('i'); }}
+            onPointerDown={(e) => { e.stopPropagation(); onDragStart?.(); setDragType('i'); dragPointerId.current = e.pointerId; }}
           />
-          <text x={iVec.x + 0.5} y={-iVec.y - 0.4} fill="#38bdf8" fontSize={0.6} fontWeight="bold" fontFamily="monospace" className="pointer-events-none select-none drop-shadow-md">T(î)</text>
+          <text x={iVec.x + 0.5 * fontScale} y={-iVec.y - 0.4 * fontScale} fill="#38bdf8" fontSize={0.6 * fontScale} fontWeight="bold" fontFamily="monospace" className="pointer-events-none select-none drop-shadow-md">T(î)</text>
 
           {/* J-Vector */}
           <line x1={0} y1={0} x2={jVec.x} y2={-jVec.y} stroke="#fb7185" strokeWidth={3} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           <circle 
-            cx={jVec.x} cy={-jVec.y} r={0.3} 
+            cx={jVec.x} cy={-jVec.y} r={0.3 * Math.min(1, zoom/2 + 0.5)} 
             fill="#fb7185" 
             className="cursor-grab active:cursor-grabbing shadow-lg transition-all shadow-rose-500/50"
-            onPointerDown={(e) => { e.stopPropagation(); onDragStart?.(); setDragType('j'); }}
+            onPointerDown={(e) => { e.stopPropagation(); onDragStart?.(); setDragType('j'); dragPointerId.current = e.pointerId; }}
           />
-          <text x={jVec.x + 0.5} y={-jVec.y - 0.4} fill="#fb7185" fontSize={0.6} fontWeight="bold" fontFamily="monospace" className="pointer-events-none select-none drop-shadow-md">T(ĵ)</text>
+          <text x={jVec.x + 0.5 * fontScale} y={-jVec.y - 0.4 * fontScale} fill="#fb7185" fontSize={0.6 * fontScale} fontWeight="bold" fontFamily="monospace" className="pointer-events-none select-none drop-shadow-md">T(ĵ)</text>
           
           {/* Origin Dot */}
           <circle cx={0} cy={0} r={0.2} fill="white" className="pointer-events-none" />
