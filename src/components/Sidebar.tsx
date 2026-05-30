@@ -56,13 +56,13 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     { label: 'PROJECTION (X)', i: {x:1, y:0}, j: {x:0, y:0} },
   ];
 
-  const [customMatrix, setCustomMatrix] = useState({ b11: 1, b12: 0, b21: 0, b22: 1 });
+  const [customMatrix, setCustomMatrix] = useState({ b11: '1', b12: '0', b21: '0', b22: '1' });
 
   const handleMultiplyBA = () => {
     addOperation(
       'Multiply Custom Matrix (B)',
-      { x: customMatrix.b11, y: customMatrix.b21 },
-      { x: customMatrix.b12, y: customMatrix.b22 },
+      { x: Number(customMatrix.b11) || 0, y: Number(customMatrix.b21) || 0 },
+      { x: Number(customMatrix.b12) || 0, y: Number(customMatrix.b22) || 0 },
       'multiply'
     );
   };
@@ -70,8 +70,8 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
   const handleAddBA = () => {
     addOperation(
       'Add Custom Matrix (+B)',
-      { x: customMatrix.b11, y: customMatrix.b21 },
-      { x: customMatrix.b12, y: customMatrix.b22 },
+      { x: Number(customMatrix.b11) || 0, y: Number(customMatrix.b21) || 0 },
+      { x: Number(customMatrix.b12) || 0, y: Number(customMatrix.b22) || 0 },
       'add'
     );
   };
@@ -187,36 +187,36 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
             <div className="space-y-1">
               <label className="text-[10px] text-emerald-500 font-mono">b₁₁</label>
               <input
-                type="number" step="0.5"
+                type="text"
                 value={customMatrix.b11}
-                onChange={(e) => setCustomMatrix({...customMatrix, b11: Number(e.target.value)})}
+                onChange={(e) => setCustomMatrix({...customMatrix, b11: e.target.value})}
                 className="w-full bg-slate-900 border border-slate-700 rounded p-2 font-mono text-sm text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] text-emerald-500 font-mono">b₁₂</label>
               <input
-                type="number" step="0.5"
+                type="text"
                 value={customMatrix.b12}
-                onChange={(e) => setCustomMatrix({...customMatrix, b12: Number(e.target.value)})}
+                onChange={(e) => setCustomMatrix({...customMatrix, b12: e.target.value})}
                 className="w-full bg-slate-900 border border-slate-700 rounded p-2 font-mono text-sm text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] text-emerald-500 font-mono">b₂₁</label>
               <input
-                type="number" step="0.5"
+                type="text"
                 value={customMatrix.b21}
-                onChange={(e) => setCustomMatrix({...customMatrix, b21: Number(e.target.value)})}
+                onChange={(e) => setCustomMatrix({...customMatrix, b21: e.target.value})}
                 className="w-full bg-slate-900 border border-slate-700 rounded p-2 font-mono text-sm text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] text-emerald-500 font-mono">b₂₂</label>
               <input
-                type="number" step="0.5"
+                type="text"
                 value={customMatrix.b22}
-                onChange={(e) => setCustomMatrix({...customMatrix, b22: Number(e.target.value)})}
+                onChange={(e) => setCustomMatrix({...customMatrix, b22: e.target.value})}
                 className="w-full bg-slate-900 border border-slate-700 rounded p-2 font-mono text-sm text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
