@@ -1,0 +1,6 @@
+{
+  "name": "Linear Matrix Transformations",
+  "description": "Visualize 2D vectors and perform real-time linear transformations using intuitive drag-and-drop handles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
